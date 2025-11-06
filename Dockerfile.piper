@@ -1,0 +1,26 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8 \
+    TZ=UTC
+
+RUN apt-get update && \
+    apt-get install --yes \
+    cmake build-essential git curl patchelf \
+    && \
+    apt-get --quiet --quiet autoclean && apt-get --quiet --quiet autoremove && \
+    rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/bin && \
+    git clone https://github.com/OHF-Voice/piper1-gpl
+
+WORKDIR /piper1-gpl/libpiper
+
+RUN git checkout 1c1120923fda1cda50dd46872415a1537720bbea
+
+COPY Taskfile.yml .
+
+CMD ["task","in.docker.build.piper"]

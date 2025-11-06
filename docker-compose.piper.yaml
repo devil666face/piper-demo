@@ -1,0 +1,10 @@
+services:
+  piper:
+    build:
+      context: .
+      dockerfile: Dockerfile.piper
+    image: piper:build
+    volumes:
+      - ./bin:/build/bin
+    container_name: piper-build
+    network_mode: host

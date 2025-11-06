@@ -1,0 +1,120 @@
+version: 3
+
+vars:
+  gobin: go
+  ldflags: "-w -s -buildid="
+  gcflags: "all=-trimpath={{.PWD}} -dwarf=false -l"
+  asmflags: "all=-trimpath={{.PWD}}"
+  bin: "{{.PWD}}/bin"
+  app: "piper"
+  app_bin: "{{.bin}}/{{.app}}"
+
+tasks:
+  setup:
+    desc: set up the environment
+    silent: true
+    cmds:
+      - mkdir -p {{.bin}}
+
+  build:
+    desc: build
+    deps:
+      - setup
+    cmds:
+      - >
+        CGO_CFLAGS="-I$(pwd)" CGO_LDFLAGS="-L$(pwd) -Wl,-rpath,$(pwd)" CGO_ENABLED=1
+        {{.gobin}} build
+        -tags netgo
+        -ldflags="{{.ldflags}}" 
+        -trimpath 
+        -gcflags="{{.gcflags}}" 
+        -asmflags="{{.asmflags}}"
+        -o {{.app_bin}} main.go
+      - strip {{.app_bin}}
+      - objcopy --strip-unneeded {{.app_bin}}
+
+  build.piper:
+    desc: build piper via docker
+    deps:
+      - setup
+    cmds:
+      - docker compose -f docker-compose.piper.yaml up --build --force-recreate
+      - |
+        cp -r \
+          {{.bin}}/install/include \
+          {{.bin}}/install/espeak-ng-data \
+          {{.bin}}/install/libpiper.so \
+          {{.bin}}/install/lib/libonnxruntime.so.1.22.0 \
+          {{.bin}}/install/lib/libonnxruntime_providers_shared.so \
+          .
+      - cp libonnxruntime.so.1.22.0 libonnxruntime.so.1
+      - cp libonnxruntime.so.1.22.0 libonnxruntime.so
+
+  remove:
+    desc: remove all
+    cmds:
+      - |
+        sudo rm -rf {{.bin}} \
+          .venv \
+          libonnxruntime.so.1 \
+          libonnxruntime.so \
+          libonnxruntime_providers_shared.so \
+          libpiper.so \
+          output.raw \
+          espeak-ng-data \
+          include
+      - |
+        rm -rf \
+          ru_RU-denis-medium.onnx \
+          ru_RU-denis-medium.onnx.json \
+          ru_RU-dmitri-medium.onnx \
+          ru_RU-dmitri-medium.onnx.json \
+          ru_RU-irina-medium.onnx \
+          ru_RU-irina-medium.onnx.json \
+          ru_RU-ruslan-medium.onnx \
+          ru_RU-ruslan-medium.onnx.json \
+
+  test:
+    desc: remove all and test
+    deps:
+      - remove
+    cmds:
+      - task models.ru
+      - task build.piper
+      - task build
+      - aplay -r 22050 -c 1 -f FLOAT_LE -t raw output.raw
+  in.docker.build.piper:
+    # https://github.com/OHF-Voice/piper1-gpl/tree/main/libpiper
+    desc: build bins for piper use only in docker
+    cmds:
+      - sed -i 's/cmake_minimum_required(VERSION 3.26)/cmake_minimum_required(VERSION 3.22.1)/' CMakeLists.txt
+      - cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$PWD/install
+      - cmake --build build
+      - cmake --install build
+      - patchelf --set-rpath '$ORIGIN' install/libpiper.so
+      - patchelf --set-rpath '$ORIGIN' install/lib/libonnxruntime.so.1.22.0
+      - rm -rf /build/bin/install
+      - cp -r install /build/bin
+  uv:
+    desc: install python requirements
+    silent: true
+    cmds:
+      - uv sync
+
+  models:
+    desc: get available models
+    deps:
+      - uv
+    cmds:
+      - .venv/bin/python3 -m piper.download_voices
+
+  models.ru:
+    # https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/CLI.md
+    desc: download ru models
+    deps:
+      - uv
+    cmds:
+      - .venv/bin/python3 -m piper.download_voices ru_RU-denis-medium
+      - .venv/bin/python3 -m piper.download_voices ru_RU-dmitri-medium
+      - .venv/bin/python3 -m piper.download_voices ru_RU-irina-medium
+      - .venv/bin/python3 -m piper.download_voices ru_RU-ruslan-medium
