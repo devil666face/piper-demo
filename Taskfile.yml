@@ -22,7 +22,7 @@ tasks:
       - setup
     cmds:
       - >
-        CGO_CFLAGS="-I$(pwd)" CGO_LDFLAGS="-L$(pwd) -Wl,-rpath,$(pwd)" CGO_ENABLED=1
+        CGO_CFLAGS="-I$(pwd)" CGO_LDFLAGS="-L. -Wl,-rpath,." CGO_ENABLED=1
         {{.gobin}} build
         -tags netgo
         -ldflags="{{.ldflags}}" 
@@ -82,15 +82,9 @@ tasks:
       - build
     cmds:
       - |
-        zip -rq9 release.zip {{.app_bin}} espeak-ng-data libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so \
-          ru_RU-denis-medium.onnx \
-          ru_RU-denis-medium.onnx.json \
+        zip -rq9 release.zip ./bin/{{.app}} espeak-ng-data libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so \
           ru_RU-dmitri-medium.onnx \
-          ru_RU-dmitri-medium.onnx.json \
-          ru_RU-irina-medium.onnx \
-          ru_RU-irina-medium.onnx.json \
-          ru_RU-ruslan-medium.onnx \
-          ru_RU-ruslan-medium.onnx.json
+          ru_RU-dmitri-medium.onnx.json
 
   test:
     desc: remove all and test
