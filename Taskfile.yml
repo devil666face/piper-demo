@@ -56,6 +56,7 @@ tasks:
       - |
         sudo rm -rf {{.bin}} \
           .venv \
+          libonnxruntime.so.1.22.0 \
           libonnxruntime.so.1 \
           libonnxruntime.so \
           libonnxruntime_providers_shared.so \
@@ -72,7 +73,24 @@ tasks:
           ru_RU-irina-medium.onnx \
           ru_RU-irina-medium.onnx.json \
           ru_RU-ruslan-medium.onnx \
-          ru_RU-ruslan-medium.onnx.json \
+          ru_RU-ruslan-medium.onnx.json
+
+  release:
+    desc: build standalone release version
+    deps:
+      - build.piper
+      - build
+    cmds:
+      - |
+        zip -rq9 release.zip {{.app_bin}} espeak-ng-data libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so \
+          ru_RU-denis-medium.onnx \
+          ru_RU-denis-medium.onnx.json \
+          ru_RU-dmitri-medium.onnx \
+          ru_RU-dmitri-medium.onnx.json \
+          ru_RU-irina-medium.onnx \
+          ru_RU-irina-medium.onnx.json \
+          ru_RU-ruslan-medium.onnx \
+          ru_RU-ruslan-medium.onnx.json
 
   test:
     desc: remove all and test
@@ -82,6 +100,7 @@ tasks:
       - task models.ru
       - task build.piper
       - task build
+      - "{{.app_bin}}"
       - aplay -r 22050 -c 1 -f FLOAT_LE -t raw output.raw
   in.docker.build.piper:
     # https://github.com/OHF-Voice/piper1-gpl/tree/main/libpiper
