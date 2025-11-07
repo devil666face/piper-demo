@@ -64,27 +64,17 @@ tasks:
           output.raw \
           espeak-ng-data \
           include
-      - |
-        rm -rf \
-          ru_RU-denis-medium.onnx \
-          ru_RU-denis-medium.onnx.json \
-          ru_RU-dmitri-medium.onnx \
-          ru_RU-dmitri-medium.onnx.json \
-          ru_RU-irina-medium.onnx \
-          ru_RU-irina-medium.onnx.json \
-          ru_RU-ruslan-medium.onnx \
-          ru_RU-ruslan-medium.onnx.json
+      - rm -rf onnx
 
   release:
     desc: build standalone release version
     deps:
       - build.piper
       - build
+      - models.ru
     cmds:
       - |
-        zip -rq9 release.zip ./bin/{{.app}} espeak-ng-data libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so \
-          ru_RU-dmitri-medium.onnx \
-          ru_RU-dmitri-medium.onnx.json
+        zip -rq9 release.zip ./bin/{{.app}} libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so
 
   test:
     desc: remove all and test
@@ -127,7 +117,8 @@ tasks:
     deps:
       - uv
     cmds:
-      - .venv/bin/python3 -m piper.download_voices ru_RU-denis-medium
       - .venv/bin/python3 -m piper.download_voices ru_RU-dmitri-medium
-      - .venv/bin/python3 -m piper.download_voices ru_RU-irina-medium
-      - .venv/bin/python3 -m piper.download_voices ru_RU-ruslan-medium
+      # - .venv/bin/python3 -m piper.download_voices ru_RU-denis-medium
+      # - .venv/bin/python3 -m piper.download_voices ru_RU-irina-medium
+      # - .venv/bin/python3 -m piper.download_voices ru_RU-ruslan-medium
+      - mv ru_RU-* onnx

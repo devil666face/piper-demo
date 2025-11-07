@@ -37,32 +37,59 @@ static void SynthFree(SynthHandle* handle) {
 */
 import "C"
 import (
+	"embed"
+	"fmt"
 	"log"
 	"os"
+	"piper/pkg/fs"
 	"unsafe"
+
+	_ "embed"
 )
 
-func main() {
-	onnx := C.CString("./ru_RU-dmitri-medium.onnx")
-	json := C.CString("./ru_RU-dmitri-medium.onnx.json")
-	espeak := C.CString("./espeak-ng-data")
+//go:embed espeak-ng-data
+var Data embed.FS
+
+//go:embed onnx
+var Onnx embed.FS
+
+const (
+	dataDir = "."
+	onnxDir = "."
+)
+
+func _main() error {
+	if _, err := fs.EmbedToFS(dataDir, Data); err != nil {
+		return fmt.Errorf("failed to prepare dir: %w", err)
+	}
+	if _, err := fs.EmbedToFS(onnxDir, Onnx); err != nil {
+		return fmt.Errorf("failed to prepare dir: %w", err)
+	}
+
+	var (
+		onnx   = C.CString("onnx/ru_RU-dmitri-medium.onnx")
+		json   = C.CString("onnx/ru_RU-dmitri-medium.onnx.json")
+		espeak = C.CString("espeak-ng-data")
+	)
 	defer C.free(unsafe.Pointer(onnx))
 	defer C.free(unsafe.Pointer(json))
 	defer C.free(unsafe.Pointer(espeak))
 
-	synth := C.SynthCreate(onnx, json, espeak)
+	var (
+		synth = C.SynthCreate(onnx, json, espeak)
+		text  = C.CString("Привет мир")
+		chunk C.piper_audio_chunk
+	)
+
 	defer C.SynthFree(synth)
-
-	text := C.CString("Привет мир")
 	defer C.free(unsafe.Pointer(text))
-	C.SynthSetLength(synth, C.float(1.0)) // длина речи, можно менять
 
+	C.SynthSetLength(synth, C.float(1.0)) // длина речи, можно менять
 	C.SynthStart(synth, text)
-	var chunk C.piper_audio_chunk
+
 	file, err := os.Create("output.raw")
 	if err != nil {
-		log.Println("failed to open file:", err)
-		return
+		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 
@@ -77,9 +104,16 @@ func main() {
 		for _, s := range samples {
 			_ = s // Пишем как нужно, например:
 			if _, err := file.Write((*[4]byte)(unsafe.Pointer(&s))[:]); err != nil {
-				log.Println("failed to save in file", err)
-				return
+				return fmt.Errorf("failed to save in file: %w", err)
 			}
 		}
+	}
+
+	return nil
+}
+
+func main() {
+	if err := _main(); err != nil {
+		log.Fatalln(err)
 	}
 }

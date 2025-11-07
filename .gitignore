@@ -16,3 +16,5 @@ output.raw
 espeak-ng-data
 bin
 release.zip
+.aider*
+file.txt
