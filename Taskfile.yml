@@ -69,10 +69,10 @@ tasks:
   release:
     desc: build standalone release version
     deps:
-      - build.piper
-      - build
       - models.ru
+      - build.piper
     cmds:
+      - task build
       - |
         zip -rq9 release.zip ./bin/{{.app}} libonnxruntime.so.1 libpiper.so libonnxruntime_providers_shared.so
 
