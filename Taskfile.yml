@@ -86,6 +86,7 @@ tasks:
       - task build
       - "{{.app_bin}}"
       - aplay -r 22050 -c 1 -f FLOAT_LE -t raw output.raw
+
   in.docker.build.piper:
     # https://github.com/OHF-Voice/piper1-gpl/tree/main/libpiper
     desc: build bins for piper use only in docker
